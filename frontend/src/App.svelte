@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { TezosToolkit, MichelCodecPacker } from "@taquito/taquito";
+  import { TezosToolkit, MichelsonMap, MichelCodecPacker } from "@taquito/taquito";
+
   import { char2Bytes, bytes2Char } from "@taquito/utils";
   import { BeaconWallet } from "@taquito/beacon-wallet";
   import { NetworkType } from "@airgap/beacon-sdk";
@@ -9,7 +10,7 @@
   let wallet: BeaconWallet;
   const walletOptions = {
     name: "Illic et Numquam",
-    preferredNetwork: NetworkType.HANGZHOUNET
+    preferredNetwork: NetworkType.CUSTOM
   };
   let userAddress: string;
   let files, title, description;
@@ -18,13 +19,13 @@
     title = "uranus";
     description = "this is Uranus";
   }
-
-  const rpcUrl = "https://hangzhounet.api.tez.ie";
+ 
+  const rpcUrl = "https://rpc.jakartanet.teztnets.xyz";
   const serverUrl =
     process.env.NODE_ENV !== "production"
       ? "http://localhost:8080"
       : "https://my-cool-backend-app.com";
-  const contractAddress = "KT1VbJAzSAHQMvf5HC9zfEVMPbT2UcBvaMXb";
+  const contractAddress = "KT1WXkNx2eZLhD7511BdBAiUt7bwboHmy6R5";
   let nftStorage = undefined;
   let userNfts: { tokenId: number; ipfsHash: string }[] = [];
   let pinningMetadata = false;
@@ -63,7 +64,7 @@
     try {
       await wallet.requestPermissions({
         network: {
-          type: NetworkType.HANGZHOUNET,
+          type: NetworkType.CUSTOM,
           rpcUrl
         }
       });
@@ -99,6 +100,7 @@
       });
       if (response) {
         const data = await response.json();
+        console.log(data);
         if (
           data.status === true &&
           data.msg.metadataHash &&
@@ -108,8 +110,11 @@
           mintingToken = true;
           // saves NFT on-chain
           const contract = await Tezos.wallet.at(contractAddress);
+          const metadataBytes = char2Bytes("ipfs://" + data.msg.metadataHash);
+          const metadataMap = new MichelsonMap();
+          metadataMap.set(userAddress, {metadata: metadataBytes})
           const op = await contract.methods
-            .mint(char2Bytes("ipfs://" + data.msg.metadataHash), userAddress)
+            .mint([{to_: userAddress}, {metadata: metadataMap}])
             .send();
           console.log("Op hash:", op.opHash);
           await op.confirmation();
@@ -202,11 +207,11 @@
 
 <main>
   <div class="container">
-    <h1>Illic Et Numquam</h1>
+    <h1>NFT 0xLuck Project</h1>
     {#if userAddress}
       <div>
         <div class="user-nfts">
-          Your NFTs:
+          Your Tezos NFTs:
           {#if nftStorage}
             [ {#each userNfts.reverse() as nft, index}
               <a
@@ -247,7 +252,7 @@
         </div>
         <div>
           <a
-            href={`https://better-call.dev/edo2net/opg/${newNft.opHash}/contents `}
+            href={`https://better-call.dev/jakartanet/opg/${newNft.opHash}/contents `}
             target="_blank"
             rel="noopener noreferrer nofollow"
           >

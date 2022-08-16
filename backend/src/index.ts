@@ -33,7 +33,7 @@ app.get("/", (req, res) => {
 // handles minting
 app.post("/mint", upload.single("image"), async (req, res) => {
   const multerReq = req as any;
-  //console.log(multerReq.file, req.body);
+  //console.log("MULTERFILES", multerReq.file, "REQ.BODY", req.body);
   if (!multerReq.file) {
     res.status(500).json({ status: false, msg: "no file provided" });
   } else {
@@ -63,19 +63,26 @@ app.post("/mint", upload.single("image"), async (req, res) => {
       const metadata = {
         name: req.body.title,
         description: req.body.description,
-        symbol: "TUT",
+        symbol: "TZO",
         artifactUri: `ipfs://${pinnedFile.IpfsHash}`,
         displayUri: `ipfs://${pinnedFile.IpfsHash}`,
-        creators: [req.body.creator],
+        creators: ["Casen Luck (@"],
         decimals: 0,
         thumbnailUri: "https://tezostaquito.io/img/favicon.png",
         is_transferable: true,
-        shouldPreferSymbol: false
+        shouldPreferSymbol: false,
+        rights: "© 2021 Black Math. All rights reserved.",
+        royalties: {
+          decimals: 2,
+               shares: {
+                    "tz1LLPWMyZ7gKsp3WnLfemyAYW6CoZoozku5": 5
+      }
+      },
       };
 
       const pinnedMetadata = await pinata.pinJSONToIPFS(metadata, {
         pinataMetadata: {
-          name: "TUT-metadata"
+          name: "TZO-metadata"
         }
       });
 
