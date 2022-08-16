@@ -111,10 +111,12 @@
           // saves NFT on-chain
           const contract = await Tezos.wallet.at(contractAddress);
           const metadataBytes = char2Bytes("ipfs://" + data.msg.metadataHash);
-          const metadataMap = new MichelsonMap();
-          metadataMap.set(userAddress, {metadata: metadataBytes})
+          const metadataMap: MichelsonMap<any, any> = MichelsonMap.fromLiteral({
+          "": metadataBytes,
+          });
+          metadataMap.set(userAddress, metadataBytes)
           const op = await contract.methods
-            .mint([{to_: userAddress}, {metadata: metadataMap}])
+            .mint([{to_: userAddress}, {"metadata": MichelsonMap.fromLiteral({userAddress: metadataBytes})}])
             .send();
           console.log("Op hash:", op.opHash);
           await op.confirmation();
