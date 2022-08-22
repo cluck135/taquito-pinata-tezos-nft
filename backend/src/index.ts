@@ -66,12 +66,12 @@ app.post("/mint", upload.single("image"), async (req, res) => {
         symbol: "TZO",
         artifactUri: `ipfs://${pinnedFile.IpfsHash}`,
         displayUri: `ipfs://${pinnedFile.IpfsHash}`,
-        creators: ["Casen Luck (@"],
+        creators: ["TEsting"],
         decimals: 0,
         thumbnailUri: "https://tezostaquito.io/img/favicon.png",
         is_transferable: true,
         shouldPreferSymbol: false,
-        rights: "© 2021 Black Math. All rights reserved.",
+        rights: "© this is a test",
         royalties: {
           decimals: 2,
                shares: {

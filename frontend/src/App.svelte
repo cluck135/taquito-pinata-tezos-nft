@@ -6,13 +6,18 @@
   import { BeaconWallet } from "@taquito/beacon-wallet";
   import { NetworkType } from "@airgap/beacon-sdk";
 
+  import holdersList  from '../data/holders'
+  import randomAccts from '../data/randomAccts'
+
   let Tezos: TezosToolkit;
   let wallet: BeaconWallet;
   const walletOptions = {
-    name: "Illic et Numquam",
+    name: "NFT Test",
     preferredNetwork: NetworkType.CUSTOM
   };
   let userAddress: string;
+  let userIsHolder: boolean = false;
+  let displayNotHolder: boolean = false;
   let files, title, description;
 
   if (process.env.NODE_ENV === "dev") {
@@ -25,14 +30,14 @@
     process.env.NODE_ENV !== "production"
       ? "http://localhost:8080"
       : "https://my-cool-backend-app.com";
-  const contractAddress = "KT1WXkNx2eZLhD7511BdBAiUt7bwboHmy6R5";
+  const contractAddress = "KT1XroUtuDeau2RFfXdF3vyoQEd7zrfnjWJz";
   let nftStorage = undefined;
   let userNfts: { tokenId: number; ipfsHash: string }[] = [];
   let pinningMetadata = false;
   let mintingToken = false;
-  let newNft:
-    | undefined
-    | { imageHash: string; metadataHash: string; opHash: string };
+  // let newNft:
+  //   | undefined
+  //   | { imageHash: string; metadataHash: string; opHash: string };
 
   const getUserNfts = async (address: string) => {
     // finds user's NFTs
@@ -69,8 +74,17 @@
         }
       });
       userAddress = await wallet.getPKH();
-      Tezos.setWalletProvider(wallet);
-      await getUserNfts(userAddress);
+      if(holdersList.includes(`${userAddress}`)) {
+        userIsHolder = true;
+        Tezos.setWalletProvider(wallet);
+        await getUserNfts(userAddress);
+      } else {
+        wallet.client.destroy();
+        wallet = undefined;
+        userAddress = "";
+        userIsHolder = false;
+        displayNotHolder = true;
+      }
     } catch (err) {
       console.error(err);
     }
@@ -83,76 +97,105 @@
   };
 
   const upload = async () => {
-    try {
-      pinningMetadata = true;
-      const data = new FormData();
-      data.append("image", files[0]);
-      data.append("title", title);
-      data.append("description", description);
-      data.append("creator", userAddress);
 
-      const response = await fetch(`${serverUrl}/mint`, {
-        method: "POST",
-        headers: {
-          "Access-Control-Allow-Origin": "*"
-        },
-        body: data
-      });
-      if (response) {
-        const data = await response.json();
-        console.log(data);
-        if (
-          data.status === true &&
-          data.msg.metadataHash &&
-          data.msg.imageHash
-        ) {
-          pinningMetadata = false;
-          mintingToken = true;
-          // saves NFT on-chain
-          const contract = await Tezos.wallet.at(contractAddress);
-          const metadataBytes = char2Bytes("ipfs://" + data.msg.metadataHash);
-          const metadata = new MichelsonMap();
-            metadata.set('', `${metadataBytes}`);
-          const mint_parameter = [
-              {
-                  to_: userAddress,
-                  metadata: metadata
-              }
-          ]
-          // const metadataMap: MichelsonMap<any, any> = MichelsonMap.fromLiteral({
-          // "": metadataBytes,
-          // });
-          // metadataMap.set(userAddress, metadataBytes)
-          const op = await contract.methods
-            .mint(mint_parameter)
-            .send();
-          console.log("Op hash:", op.opHash);
-          await op.confirmation();
 
-          newNft = {
-            imageHash: data.msg.imageHash,
-            metadataHash: data.msg.metadataHash,
-            opHash: op.opHash
-          };
+    let promiseArray = [];
+    const data = new FormData();
+          data.append("image", files[0]);
+          data.append("title", title);
+          data.append("description", description);
+          data.append("creator", userAddress);
 
-          files = undefined;
-          title = "";
-          description = "";
-
-          // refreshes storage
-          await getUserNfts(userAddress);
-        } else {
-          throw "No IPFS hash";
-        }
-      } else {
-        throw "No response";
-      }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      pinningMetadata = false;
-      mintingToken = false;
+    for(let i=0;i<randomAccts.length;i++){
+    promiseArray.push(fetch(`${serverUrl}/mint`, {
+              method: "POST",
+              headers: {
+                "Access-Control-Allow-Origin": "*"
+              },
+              body: data
+            }))
     }
+
+    Promise.all(promiseArray)
+    .then(values=>values.map(value => {
+      console.log(value.status)
+    })).catch(err=>console.log(err))
+    
+    // try {
+    //       pinningMetadata = true;
+    //       const data = new FormData();
+    //       data.append("image", files[0]);
+    //       data.append("title", title);
+    //       data.append("description", description);
+    //       data.append("creator", userAddress);
+    //       let mint_parameter: Array<Object> = []
+          
+    //         const response = await fetch(`${serverUrl}/mint`, {
+    //           method: "POST",
+    //           headers: {
+    //             "Access-Control-Allow-Origin": "*"
+    //           },
+    //           body: data
+    //         });
+    //         if (response) {
+    //           const data = await response.json();
+    //           console.log(data);
+    //           if (
+    //             data.status === true &&
+    //             data.msg.metadataHash &&
+    //             data.msg.imageHash
+    //           ) {
+    //             pinningMetadata = false;
+    //             mintingToken = true;
+
+    //             saves NFT on-chain
+                
+    //             const metadataBytes = char2Bytes("ipfs://" + data.msg.metadataHash);
+    //             const metadata = new MichelsonMap();
+    //             metadata.set('', `${metadataBytes}`);
+    //             const nextHolder = {
+    //                     to_: userAddress,
+    //                     metadata: metadata
+    //                 }
+    //             mint_parameter.push(nextHolder)
+
+    //             newNft = {
+    //               imageHash: data.msg.imageHash,
+    //               metadataHash: data.msg.metadataHash,
+    //               opHash: op.opHash
+    //             };
+
+    //             files = undefined;
+    //             title = "";
+    //             description = "";
+
+    //             refreshes storage
+    //           } else {
+    //             throw "No IPFS hash";
+    //           }
+    //         } else {
+    //           throw "No response from server";
+    //         }
+        
+      
+    //   do something else here after firstFunction completes
+    //     console.log(mint_parameter)
+    //     const contract = await Tezos.wallet.at(contractAddress); 
+    //         const op = await contract.methods
+    //           .mint(mint_parameter)
+    //           .send();
+    //         console.log("Op hash:", op.opHash);
+    //         await op.confirmation();
+            
+    //     await getUserNfts(userAddress);
+      
+  
+    // } catch (error) {
+    //   console.log(error);
+    // } finally {
+    //   pinningMetadata = false;
+    //   mintingToken = false;
+    // }
   };
 
   onMount(async () => {
@@ -172,7 +215,7 @@
 
   h1 {
     font-size: 3rem;
-    font-family: "Roman-SD";
+    font-family: "mono";
   }
 
   button {
@@ -186,7 +229,7 @@
 
   .roman {
     text-transform: uppercase;
-    font-family: "Roman-SD";
+    font-family: "mono";
     font-weight: bold;
   }
 
@@ -217,8 +260,15 @@
 
 <main>
   <div class="container">
-    <h1>NFT 0xLuck Project</h1>
-    {#if userAddress}
+    <h1>NFT Test Project</h1>
+    {#if !userIsHolder}
+          <div class="roman">Connect to check if you are a holder of Tezos Origins</div>
+          <button class="roman" on:click={connect}>Connect your wallet</button>
+      {#if displayNotHolder}
+          <div class="roman"> Sorry either you missed the cut off date of Aug 1st or you are not a Tezos Origins Holder</div>
+      {/if}
+    {/if}
+    {#if userIsHolder}
       <div>
         <div class="user-nfts">
           Your Tezos NFTs:
@@ -240,7 +290,7 @@
         <br />
         <button class="roman" on:click={disconnect}>Disconnect</button>
       </div>
-      {#if newNft}
+      <!-- {#if newNft}
         <div>Your NFT has been successfully minted!</div>
         <div>
           <a
@@ -274,7 +324,7 @@
             Mint a new NFT
           </button>
         </div>
-      {:else}
+      {:else} -->
         <div>
           <div>Select your picture</div>
           <br />
@@ -305,10 +355,7 @@
             <button class="roman" on:click={upload}> Upload </button>
           {/if}
         </div>
-      {/if}
-    {:else}
-      <div class="roman">Create an NFT with your pictures</div>
-      <button class="roman" on:click={connect}>Connect your wallet</button>
+      <!-- {/if} -->
     {/if}
   </div>
 </main>
