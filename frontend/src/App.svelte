@@ -74,17 +74,20 @@
         }
       });
       userAddress = await wallet.getPKH();
-      if(holdersList.includes(`${userAddress}`)) {
-        userIsHolder = true;
-        Tezos.setWalletProvider(wallet);
-        await getUserNfts(userAddress);
-      } else {
-        wallet.client.destroy();
-        wallet = undefined;
-        userAddress = "";
-        userIsHolder = false;
-        displayNotHolder = true;
-      }
+      userIsHolder = true;
+      Tezos.setWalletProvider(wallet);
+      await getUserNfts(userAddress); // ADD logic so only permitted addresses can access the Admin app
+      // if(holdersList.includes(`${userAddress}`)) {
+      //   userIsHolder = true;
+      //   Tezos.setWalletProvider(wallet);
+      //   await getUserNfts(userAddress);
+      // } else {
+      //   wallet.client.destroy();
+      //   wallet = undefined;
+      //   userAddress = "";
+      //   userIsHolder = false;
+      //   displayNotHolder = true;
+      // }
     } catch (err) {
       console.error(err);
     }
@@ -97,105 +100,82 @@
   };
 
   const upload = async () => {
-
-
-    let promiseArray = [];
-    const data = new FormData();
+    try {
+          pinningMetadata = true;
+          const data = new FormData();
           data.append("image", files[0]);
           data.append("title", title);
           data.append("description", description);
           data.append("creator", userAddress);
-
-    for(let i=0;i<randomAccts.length;i++){
-    promiseArray.push(fetch(`${serverUrl}/mint`, {
+          let mint_parameter: Array<Object> = []
+          
+            const response = await fetch(`${serverUrl}/mint`, {
               method: "POST",
               headers: {
                 "Access-Control-Allow-Origin": "*"
               },
               body: data
-            }))
-    }
+            });
+            if (response) {
+              const data = await response.json();
+              console.log(data);
+              if (
+                data.status === true &&
+                data.msg.metadataHash &&
+                data.msg.imageHash
+              ) {
+                pinningMetadata = false;
+                mintingToken = true;
 
-    Promise.all(promiseArray)
-    .then(values=>values.map(value => {
-      console.log(value.status)
-    })).catch(err=>console.log(err))
-    
-    // try {
-    //       pinningMetadata = true;
-    //       const data = new FormData();
-    //       data.append("image", files[0]);
-    //       data.append("title", title);
-    //       data.append("description", description);
-    //       data.append("creator", userAddress);
-    //       let mint_parameter: Array<Object> = []
-          
-    //         const response = await fetch(`${serverUrl}/mint`, {
-    //           method: "POST",
-    //           headers: {
-    //             "Access-Control-Allow-Origin": "*"
-    //           },
-    //           body: data
-    //         });
-    //         if (response) {
-    //           const data = await response.json();
-    //           console.log(data);
-    //           if (
-    //             data.status === true &&
-    //             data.msg.metadataHash &&
-    //             data.msg.imageHash
-    //           ) {
-    //             pinningMetadata = false;
-    //             mintingToken = true;
-
-    //             saves NFT on-chain
+                //saves NFT on-chain
                 
-    //             const metadataBytes = char2Bytes("ipfs://" + data.msg.metadataHash);
-    //             const metadata = new MichelsonMap();
-    //             metadata.set('', `${metadataBytes}`);
-    //             const nextHolder = {
-    //                     to_: userAddress,
-    //                     metadata: metadata
-    //                 }
-    //             mint_parameter.push(nextHolder)
+                const metadataBytes = char2Bytes("ipfs://" + data.msg.metadataHash);
+                const metadata = new MichelsonMap();
+                metadata.set('', `${metadataBytes}`);
+                const nextHolder = {
+                        to_: userAddress,
+                        metadata: metadata
+                    }
+                mint_parameter.push(nextHolder)
 
-    //             newNft = {
-    //               imageHash: data.msg.imageHash,
-    //               metadataHash: data.msg.metadataHash,
-    //               opHash: op.opHash
-    //             };
+                // const newNft = {
+                //   imageHash: data.msg.imageHash,
+                //   metadataHash: data.msg.metadataHash,
+                //   opHash: op.opHash
+                // };
 
-    //             files = undefined;
-    //             title = "";
-    //             description = "";
+                files = undefined;
+                title = "";
+                description = "";
 
-    //             refreshes storage
-    //           } else {
-    //             throw "No IPFS hash";
-    //           }
-    //         } else {
-    //           throw "No response from server";
-    //         }
+               // refreshes storage
+              } else {
+                throw "No IPFS hash";
+              }
+            } else {
+              throw "No response from server";
+            }
         
       
-    //   do something else here after firstFunction completes
-    //     console.log(mint_parameter)
-    //     const contract = await Tezos.wallet.at(contractAddress); 
-    //         const op = await contract.methods
-    //           .mint(mint_parameter)
-    //           .send();
-    //         console.log("Op hash:", op.opHash);
-    //         await op.confirmation();
+        console.log(mint_parameter)
+        const contract = await Tezos.wallet.at(contractAddress); 
+            const op = await contract.methods
+              .mint(mint_parameter)
+              .send();
+
+
+            console.log("Op hash:", op.opHash);
+            await op.confirmation();
             
-    //     await getUserNfts(userAddress);
+        await getUserNfts(userAddress);
       
   
-    // } catch (error) {
-    //   console.log(error);
-    // } finally {
-    //   pinningMetadata = false;
-    //   mintingToken = false;
-    // }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      pinningMetadata = false;
+      mintingToken = false;
+    }
   };
 
   onMount(async () => {

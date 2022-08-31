@@ -55,7 +55,8 @@ app.post("/mint", upload.single("image"), async (req, res) => {
     const pinnedFile = await pinata.pinFileToIPFS(
       readableStreamForFile,
       options
-    );
+    ).catch((err: any) => console.log(err))
+
     if (pinnedFile.IpfsHash && pinnedFile.PinSize > 0) {
       // remove file from server
       fs.unlinkSync(`./uploads/${fileName}`);
@@ -84,7 +85,7 @@ app.post("/mint", upload.single("image"), async (req, res) => {
         pinataMetadata: {
           name: "TZO-metadata"
         }
-      });
+      }).catch((err: any) => console.log(err))
 
       if (pinnedMetadata.IpfsHash && pinnedMetadata.PinSize > 0) {
         res.status(200).json({
