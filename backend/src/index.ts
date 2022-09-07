@@ -67,9 +67,15 @@ app.post("/mint", upload.single("image"), async (req, res) => {
         symbol: "TZO",
         artifactUri: `ipfs://${pinnedFile.IpfsHash}`,
         displayUri: `ipfs://${pinnedFile.IpfsHash}`,
+        formats: [
+          {
+          "mimeType": "image/png",
+          "uri": `ipfs://${pinnedFile.IpfsHash}`,
+          }
+          ],
         creators: ["TEsting"],
         decimals: 0,
-        thumbnailUri: "https://tezostaquito.io/img/favicon.png",
+        thumbnailUri: `ipfs://${pinnedFile.IpfsHash}`,
         is_transferable: true,
         shouldPreferSymbol: false,
         rights: "© this is a test",

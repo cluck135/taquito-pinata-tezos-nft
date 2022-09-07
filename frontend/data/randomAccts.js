@@ -9,7 +9,7 @@ const randomAccts = [
 ];
 
 
-const hundredAccts = [
+const uhh = [
   "tz1Ke2h7sDdakHJQh8WX4Z372du1KChsksyU",
   "tz1itwvWyP4qd6PY7qrYkn3LBvDC13vjQS9i",
   "tz1eGPQqcbXnXyQ8CEuiKSbX4DojFRoo75Lj",

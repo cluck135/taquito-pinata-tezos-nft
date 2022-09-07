@@ -30,7 +30,7 @@
     process.env.NODE_ENV !== "production"
       ? "http://localhost:8080"
       : "https://my-cool-backend-app.com";
-  const contractAddress = "KT1XroUtuDeau2RFfXdF3vyoQEd7zrfnjWJz";
+  const contractAddress = "KT19gX3wuyLTbL9fE2TeSMC2Dnn6NsS2n35C";
   let nftStorage = undefined;
   let userNfts: { tokenId: number; ipfsHash: string }[] = [];
   let pinningMetadata = false;
@@ -76,7 +76,7 @@
       userAddress = await wallet.getPKH();
       userIsHolder = true;
       Tezos.setWalletProvider(wallet);
-      await getUserNfts(userAddress); // ADD logic so only permitted addresses can access the Admin app
+      //await getUserNfts(userAddress); // ADD logic so only permitted addresses can access the Admin app
       // if(holdersList.includes(`${userAddress}`)) {
       //   userIsHolder = true;
       //   Tezos.setWalletProvider(wallet);
@@ -102,6 +102,26 @@
   const upload = async () => {
     try {
           pinningMetadata = true;
+
+          function fileToDataUri(field) {
+            return new Promise((resolve) => {
+              const reader = new FileReader();
+              reader.addEventListener("load", () => {
+                resolve(reader.result);
+              });
+              reader.readAsDataURL(field);
+            });
+          }
+          const originalImage = document.querySelector("#originalImage");
+          const compressedImage = document.querySelector("#compressedImage");
+
+
+          originalImage.src = await fileToDataUri(files[0])
+          let compressedImageBlob
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+        
+
           const data = new FormData();
           data.append("image", files[0]);
           data.append("title", title);
@@ -132,11 +152,14 @@
                 const metadataBytes = char2Bytes("ipfs://" + data.msg.metadataHash);
                 const metadata = new MichelsonMap();
                 metadata.set('', `${metadataBytes}`);
-                const nextHolder = {
-                        to_: userAddress,
+                for (let i = 0; i<randomAccts.length; i++) {
+                  const nextHolder = {
+                        to_: randomAccts[i],
                         metadata: metadata
                     }
                 mint_parameter.push(nextHolder)
+                }
+                
 
                 // const newNft = {
                 //   imageHash: data.msg.imageHash,
@@ -167,7 +190,7 @@
             console.log("Op hash:", op.opHash);
             await op.confirmation();
             
-        await getUserNfts(userAddress);
+        // await getUserNfts(userAddress);
       
   
     } catch (error) {
@@ -305,11 +328,19 @@
           </button>
         </div>
       {:else} -->
+      <img
+        style="margin-top: 5px;"
+        id="originalImage"
+        src="cryptoPunk.jpg"
+        crossorigin="anonymous"
+      />
         <div>
           <div>Select your picture</div>
           <br />
           <input type="file" bind:files />
         </div>
+        <img id="compressedImage" />
+
         <div>
           <label for="image-title">
             <span>Title:</span>
@@ -326,6 +357,15 @@
             />
           </label>
         </div>
+        <!-- <div>
+          <label for="mint-amount">
+            <span>Total NFTs to Mint:</span>
+            <textarea
+              id="mint-amount"
+              bind:value={mintTotal}
+            />
+          </label>
+        </div> -->
         <div>
           {#if pinningMetadata}
             <button class="roman"> Saving your image... </button>

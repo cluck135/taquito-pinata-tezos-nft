@@ -1,0 +1,8 @@
+{
+    "name": "Test Name",
+    "description": "A test description",
+    "version": "1.0.0",
+    "authors": "Someone cool",
+    "homepage": "http://motherfuckingwebsite.com/",
+    "interfaces": ["TZIP-012", "TZIP-016"],
+}
